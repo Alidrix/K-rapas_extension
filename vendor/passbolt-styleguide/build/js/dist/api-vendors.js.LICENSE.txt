@@ -1,0 +1,987 @@
+/*!
+ * XRegExp 5.1.2
+ * <xregexp.com>
+ * Steven Levithan (c) 2007-present MIT License
+ */
+
+/*!
+ * XRegExp Unicode Base 5.1.2
+ * <xregexp.com>
+ * Steven Levithan (c) 2008-present MIT License
+ */
+
+/*!
+ * XRegExp Unicode Categories 5.1.2
+ * <xregexp.com>
+ * Steven Levithan (c) 2010-present MIT License
+ * Unicode data by Mathias Bynens <mathiasbynens.be>
+ */
+
+/*!
+ * XRegExp Unicode Properties 5.1.2
+ * <xregexp.com>
+ * Steven Levithan (c) 2012-present MIT License
+ * Unicode data by Mathias Bynens <mathiasbynens.be>
+ */
+
+/*!
+ * XRegExp Unicode Scripts 5.1.2
+ * <xregexp.com>
+ * Steven Levithan (c) 2010-present MIT License
+ * Unicode data by Mathias Bynens <mathiasbynens.be>
+ */
+
+/*! ../../../es/array/virtual/for-each */
+
+/*! ../../../internals/get-built-in-prototype-method */
+
+/*! ../../../modules/es.array.concat */
+
+/*! ../../../modules/es.array.for-each */
+
+/*! ../../../modules/es.array.index-of */
+
+/*! ../../../modules/es.array.map */
+
+/*! ../../../modules/es.array.push */
+
+/*! ../../../modules/es.array.reduce */
+
+/*! ../../../modules/es.array.slice */
+
+/*! ../../../modules/es.array.sort */
+
+/*! ../../actual/array/from */
+
+/*! ../../actual/array/is-array */
+
+/*! ../../actual/instance/push */
+
+/*! ../../actual/instance/slice */
+
+/*! ../../actual/symbol */
+
+/*! ../../es/array/from */
+
+/*! ../../es/array/is-array */
+
+/*! ../../es/instance/concat */
+
+/*! ../../es/instance/flags */
+
+/*! ../../es/instance/index-of */
+
+/*! ../../es/instance/map */
+
+/*! ../../es/instance/push */
+
+/*! ../../es/instance/reduce */
+
+/*! ../../es/instance/slice */
+
+/*! ../../es/instance/sort */
+
+/*! ../../es/object/create */
+
+/*! ../../es/object/define-property */
+
+/*! ../../es/symbol */
+
+/*! ../../full/array/from */
+
+/*! ../../full/array/is-array */
+
+/*! ../../full/instance/push */
+
+/*! ../../full/instance/slice */
+
+/*! ../../full/symbol */
+
+/*! ../../internals/classof */
+
+/*! ../../internals/has-own-property */
+
+/*! ../../internals/object-is-prototype-of */
+
+/*! ../../internals/path */
+
+/*! ../../internals/regexp-get-flags */
+
+/*! ../../modules/es.array.concat */
+
+/*! ../../modules/es.array.from */
+
+/*! ../../modules/es.array.is-array */
+
+/*! ../../modules/es.json.to-string-tag */
+
+/*! ../../modules/es.math.to-string-tag */
+
+/*! ../../modules/es.object.create */
+
+/*! ../../modules/es.object.define-property */
+
+/*! ../../modules/es.object.to-string */
+
+/*! ../../modules/es.reflect.to-string-tag */
+
+/*! ../../modules/es.regexp.flags */
+
+/*! ../../modules/es.string.iterator */
+
+/*! ../../modules/es.symbol */
+
+/*! ../../modules/es.symbol.async-dispose */
+
+/*! ../../modules/es.symbol.async-iterator */
+
+/*! ../../modules/es.symbol.description */
+
+/*! ../../modules/es.symbol.dispose */
+
+/*! ../../modules/es.symbol.has-instance */
+
+/*! ../../modules/es.symbol.is-concat-spreadable */
+
+/*! ../../modules/es.symbol.iterator */
+
+/*! ../../modules/es.symbol.match */
+
+/*! ../../modules/es.symbol.match-all */
+
+/*! ../../modules/es.symbol.replace */
+
+/*! ../../modules/es.symbol.search */
+
+/*! ../../modules/es.symbol.species */
+
+/*! ../../modules/es.symbol.split */
+
+/*! ../../modules/es.symbol.to-primitive */
+
+/*! ../../modules/es.symbol.to-string-tag */
+
+/*! ../../modules/es.symbol.unscopables */
+
+/*! ../../modules/esnext.function.metadata */
+
+/*! ../../modules/esnext.symbol.async-dispose */
+
+/*! ../../modules/esnext.symbol.custom-matcher */
+
+/*! ../../modules/esnext.symbol.dispose */
+
+/*! ../../modules/esnext.symbol.is-registered */
+
+/*! ../../modules/esnext.symbol.is-registered-symbol */
+
+/*! ../../modules/esnext.symbol.is-well-known */
+
+/*! ../../modules/esnext.symbol.is-well-known-symbol */
+
+/*! ../../modules/esnext.symbol.matcher */
+
+/*! ../../modules/esnext.symbol.metadata */
+
+/*! ../../modules/esnext.symbol.metadata-key */
+
+/*! ../../modules/esnext.symbol.observable */
+
+/*! ../../modules/esnext.symbol.pattern-match */
+
+/*! ../../modules/esnext.symbol.replace-all */
+
+/*! ../../modules/web.dom-collections.for-each */
+
+/*! ../../modules/web.dom-collections.iterator */
+
+/*! ../../stable/array/from */
+
+/*! ../../stable/array/is-array */
+
+/*! ../../stable/instance/push */
+
+/*! ../../stable/instance/slice */
+
+/*! ../../stable/symbol */
+
+/*! ../../tools/output/categories */
+
+/*! ../../tools/output/properties */
+
+/*! ../../tools/output/scripts */
+
+/*! ../actual/get-iterator-method */
+
+/*! ../array/virtual/concat */
+
+/*! ../array/virtual/for-each */
+
+/*! ../array/virtual/index-of */
+
+/*! ../array/virtual/map */
+
+/*! ../array/virtual/push */
+
+/*! ../array/virtual/reduce */
+
+/*! ../array/virtual/slice */
+
+/*! ../array/virtual/sort */
+
+/*! ../es/get-iterator-method */
+
+/*! ../es/parse-int */
+
+/*! ../full/get-iterator-method */
+
+/*! ../internals/a-callable */
+
+/*! ../internals/a-possible-prototype */
+
+/*! ../internals/add-to-unscopables */
+
+/*! ../internals/an-object */
+
+/*! ../internals/array-for-each */
+
+/*! ../internals/array-from */
+
+/*! ../internals/array-includes */
+
+/*! ../internals/array-iteration */
+
+/*! ../internals/array-method-has-species-support */
+
+/*! ../internals/array-method-is-strict */
+
+/*! ../internals/array-reduce */
+
+/*! ../internals/array-set-length */
+
+/*! ../internals/array-slice */
+
+/*! ../internals/array-sort */
+
+/*! ../internals/array-species-constructor */
+
+/*! ../internals/array-species-create */
+
+/*! ../internals/call-with-safe-iteration-closing */
+
+/*! ../internals/check-correctness-of-iteration */
+
+/*! ../internals/classof */
+
+/*! ../internals/classof-raw */
+
+/*! ../internals/correct-prototype-getter */
+
+/*! ../internals/create-iter-result-object */
+
+/*! ../internals/create-non-enumerable-property */
+
+/*! ../internals/create-property */
+
+/*! ../internals/create-property-descriptor */
+
+/*! ../internals/define-built-in */
+
+/*! ../internals/define-built-in-accessor */
+
+/*! ../internals/define-global-property */
+
+/*! ../internals/delete-property-or-throw */
+
+/*! ../internals/descriptors */
+
+/*! ../internals/document-create-element */
+
+/*! ../internals/does-not-exceed-safe-integer */
+
+/*! ../internals/dom-iterables */
+
+/*! ../internals/enum-bug-keys */
+
+/*! ../internals/environment */
+
+/*! ../internals/environment-ff-version */
+
+/*! ../internals/environment-is-ie-or-edge */
+
+/*! ../internals/environment-is-node */
+
+/*! ../internals/environment-user-agent */
+
+/*! ../internals/environment-v8-version */
+
+/*! ../internals/environment-webkit-version */
+
+/*! ../internals/export */
+
+/*! ../internals/fails */
+
+/*! ../internals/function-apply */
+
+/*! ../internals/function-bind-context */
+
+/*! ../internals/function-bind-native */
+
+/*! ../internals/function-call */
+
+/*! ../internals/function-name */
+
+/*! ../internals/function-uncurry-this */
+
+/*! ../internals/function-uncurry-this-accessor */
+
+/*! ../internals/function-uncurry-this-clause */
+
+/*! ../internals/get-built-in */
+
+/*! ../internals/get-iterator */
+
+/*! ../internals/get-iterator-method */
+
+/*! ../internals/get-method */
+
+/*! ../internals/global-this */
+
+/*! ../internals/has-own-property */
+
+/*! ../internals/hidden-keys */
+
+/*! ../internals/html */
+
+/*! ../internals/ie8-dom-define */
+
+/*! ../internals/indexed-object */
+
+/*! ../internals/inspect-source */
+
+/*! ../internals/internal-state */
+
+/*! ../internals/is-array */
+
+/*! ../internals/is-array-iterator-method */
+
+/*! ../internals/is-callable */
+
+/*! ../internals/is-constructor */
+
+/*! ../internals/is-forced */
+
+/*! ../internals/is-null-or-undefined */
+
+/*! ../internals/is-object */
+
+/*! ../internals/is-possible-prototype */
+
+/*! ../internals/is-pure */
+
+/*! ../internals/is-raw-json */
+
+/*! ../internals/is-symbol */
+
+/*! ../internals/iterator-close */
+
+/*! ../internals/iterator-create-constructor */
+
+/*! ../internals/iterator-define */
+
+/*! ../internals/iterators */
+
+/*! ../internals/iterators-core */
+
+/*! ../internals/length-of-array-like */
+
+/*! ../internals/math-trunc */
+
+/*! ../internals/native-raw-json */
+
+/*! ../internals/number-parse-int */
+
+/*! ../internals/object-create */
+
+/*! ../internals/object-define-properties */
+
+/*! ../internals/object-define-property */
+
+/*! ../internals/object-get-own-property-descriptor */
+
+/*! ../internals/object-get-own-property-names */
+
+/*! ../internals/object-get-own-property-names-external */
+
+/*! ../internals/object-get-own-property-symbols */
+
+/*! ../internals/object-get-prototype-of */
+
+/*! ../internals/object-is-prototype-of */
+
+/*! ../internals/object-keys */
+
+/*! ../internals/object-keys-internal */
+
+/*! ../internals/object-property-is-enumerable */
+
+/*! ../internals/object-set-prototype-of */
+
+/*! ../internals/object-to-string */
+
+/*! ../internals/ordinary-to-primitive */
+
+/*! ../internals/parse-json-string */
+
+/*! ../internals/path */
+
+/*! ../internals/regexp-flags */
+
+/*! ../internals/regexp-flags-detection */
+
+/*! ../internals/require-object-coercible */
+
+/*! ../internals/set-to-string-tag */
+
+/*! ../internals/shared */
+
+/*! ../internals/shared-key */
+
+/*! ../internals/shared-store */
+
+/*! ../internals/string-multibyte */
+
+/*! ../internals/string-trim */
+
+/*! ../internals/symbol-constructor-detection */
+
+/*! ../internals/symbol-define-to-primitive */
+
+/*! ../internals/symbol-is-registered */
+
+/*! ../internals/symbol-is-well-known */
+
+/*! ../internals/symbol-registry-detection */
+
+/*! ../internals/to-absolute-index */
+
+/*! ../internals/to-indexed-object */
+
+/*! ../internals/to-integer-or-infinity */
+
+/*! ../internals/to-length */
+
+/*! ../internals/to-object */
+
+/*! ../internals/to-primitive */
+
+/*! ../internals/to-property-key */
+
+/*! ../internals/to-string */
+
+/*! ../internals/to-string-tag-support */
+
+/*! ../internals/try-to-string */
+
+/*! ../internals/uid */
+
+/*! ../internals/use-symbol-as-uid */
+
+/*! ../internals/v8-prototype-define-bug */
+
+/*! ../internals/weak-map-basic-detection */
+
+/*! ../internals/well-known-symbol */
+
+/*! ../internals/well-known-symbol-define */
+
+/*! ../internals/well-known-symbol-wrapped */
+
+/*! ../internals/whitespaces */
+
+/*! ../modules/es.array.iterator */
+
+/*! ../modules/es.json.stringify */
+
+/*! ../modules/es.object.get-own-property-symbols */
+
+/*! ../modules/es.parse-int */
+
+/*! ../modules/es.string.iterator */
+
+/*! ../modules/es.symbol.async-dispose */
+
+/*! ../modules/es.symbol.constructor */
+
+/*! ../modules/es.symbol.dispose */
+
+/*! ../modules/es.symbol.for */
+
+/*! ../modules/es.symbol.key-for */
+
+/*! ../modules/web.dom-collections.iterator */
+
+/*! ../regexp/flags */
+
+/*! ../stable/get-iterator-method */
+
+/*! ./addons/build */
+
+/*! ./addons/matchrecursive */
+
+/*! ./addons/unicode-base */
+
+/*! ./addons/unicode-categories */
+
+/*! ./addons/unicode-properties */
+
+/*! ./addons/unicode-scripts */
+
+/*! ./alpha */
+
+/*! ./arrayLikeToArray.js */
+
+/*! ./arrayWithHoles.js */
+
+/*! ./blacklist */
+
+/*! ./cjs/react-dom.production.min.js */
+
+/*! ./cjs/react-is.production.min.js */
+
+/*! ./cjs/react.production.min.js */
+
+/*! ./cjs/scheduler.production.min.js */
+
+/*! ./factoryWithThrowingShims */
+
+/*! ./isBase64 */
+
+/*! ./isByteLength */
+
+/*! ./isDate */
+
+/*! ./isEmail */
+
+/*! ./isFQDN */
+
+/*! ./isFloat */
+
+/*! ./isFullWidth */
+
+/*! ./isHalfWidth */
+
+/*! ./isHexadecimal */
+
+/*! ./isIP */
+
+/*! ./isISO31661Alpha2 */
+
+/*! ./isInt */
+
+/*! ./isLuhnNumber */
+
+/*! ./iterableToArrayLimit.js */
+
+/*! ./lib/ReactPropTypesSecret */
+
+/*! ./lib/blacklist */
+
+/*! ./lib/contains */
+
+/*! ./lib/equals */
+
+/*! ./lib/escape */
+
+/*! ./lib/isAbaRouting */
+
+/*! ./lib/isAfter */
+
+/*! ./lib/isAlpha */
+
+/*! ./lib/isAlphanumeric */
+
+/*! ./lib/isAscii */
+
+/*! ./lib/isBIC */
+
+/*! ./lib/isBase32 */
+
+/*! ./lib/isBase58 */
+
+/*! ./lib/isBase64 */
+
+/*! ./lib/isBefore */
+
+/*! ./lib/isBoolean */
+
+/*! ./lib/isBtcAddress */
+
+/*! ./lib/isByteLength */
+
+/*! ./lib/isCreditCard */
+
+/*! ./lib/isCurrency */
+
+/*! ./lib/isDataURI */
+
+/*! ./lib/isDate */
+
+/*! ./lib/isDecimal */
+
+/*! ./lib/isDivisibleBy */
+
+/*! ./lib/isEAN */
+
+/*! ./lib/isEmail */
+
+/*! ./lib/isEmpty */
+
+/*! ./lib/isEthereumAddress */
+
+/*! ./lib/isFQDN */
+
+/*! ./lib/isFloat */
+
+/*! ./lib/isFullWidth */
+
+/*! ./lib/isHSL */
+
+/*! ./lib/isHalfWidth */
+
+/*! ./lib/isHash */
+
+/*! ./lib/isHexColor */
+
+/*! ./lib/isHexadecimal */
+
+/*! ./lib/isIBAN */
+
+/*! ./lib/isIMEI */
+
+/*! ./lib/isIP */
+
+/*! ./lib/isIPRange */
+
+/*! ./lib/isISBN */
+
+/*! ./lib/isISIN */
+
+/*! ./lib/isISO15924 */
+
+/*! ./lib/isISO31661Alpha2 */
+
+/*! ./lib/isISO31661Alpha3 */
+
+/*! ./lib/isISO31661Numeric */
+
+/*! ./lib/isISO4217 */
+
+/*! ./lib/isISO6346 */
+
+/*! ./lib/isISO6391 */
+
+/*! ./lib/isISO8601 */
+
+/*! ./lib/isISRC */
+
+/*! ./lib/isISSN */
+
+/*! ./lib/isIdentityCard */
+
+/*! ./lib/isIn */
+
+/*! ./lib/isInt */
+
+/*! ./lib/isJSON */
+
+/*! ./lib/isJWT */
+
+/*! ./lib/isLatLong */
+
+/*! ./lib/isLength */
+
+/*! ./lib/isLicensePlate */
+
+/*! ./lib/isLocale */
+
+/*! ./lib/isLowercase */
+
+/*! ./lib/isLuhnNumber */
+
+/*! ./lib/isMACAddress */
+
+/*! ./lib/isMD5 */
+
+/*! ./lib/isMagnetURI */
+
+/*! ./lib/isMailtoURI */
+
+/*! ./lib/isMimeType */
+
+/*! ./lib/isMobilePhone */
+
+/*! ./lib/isMongoId */
+
+/*! ./lib/isMultibyte */
+
+/*! ./lib/isNumeric */
+
+/*! ./lib/isOctal */
+
+/*! ./lib/isPassportNumber */
+
+/*! ./lib/isPort */
+
+/*! ./lib/isPostalCode */
+
+/*! ./lib/isRFC3339 */
+
+/*! ./lib/isRgbColor */
+
+/*! ./lib/isSemVer */
+
+/*! ./lib/isSlug */
+
+/*! ./lib/isStrongPassword */
+
+/*! ./lib/isSurrogatePair */
+
+/*! ./lib/isTaxID */
+
+/*! ./lib/isTime */
+
+/*! ./lib/isULID */
+
+/*! ./lib/isURL */
+
+/*! ./lib/isUUID */
+
+/*! ./lib/isUppercase */
+
+/*! ./lib/isVAT */
+
+/*! ./lib/isVariableWidth */
+
+/*! ./lib/isWhitelisted */
+
+/*! ./lib/ltrim */
+
+/*! ./lib/matches */
+
+/*! ./lib/normalizeEmail */
+
+/*! ./lib/rtrim */
+
+/*! ./lib/stripLow */
+
+/*! ./lib/toBoolean */
+
+/*! ./lib/toDate */
+
+/*! ./lib/toFloat */
+
+/*! ./lib/toInt */
+
+/*! ./lib/trim */
+
+/*! ./lib/unescape */
+
+/*! ./lib/whitelist */
+
+/*! ./ltrim */
+
+/*! ./nonIterableRest.js */
+
+/*! ./regex.js */
+
+/*! ./rng.js */
+
+/*! ./rtrim */
+
+/*! ./setPrototypeOf.js */
+
+/*! ./stringify.js */
+
+/*! ./toDate */
+
+/*! ./toFloat */
+
+/*! ./trim */
+
+/*! ./unsupportedIterableToArray.js */
+
+/*! ./util/algorithms */
+
+/*! ./util/assertString */
+
+/*! ./util/checkHost */
+
+/*! ./util/includesArray */
+
+/*! ./util/includesString */
+
+/*! ./util/merge */
+
+/*! ./util/multilineRegex */
+
+/*! ./util/nullUndefinedCheck */
+
+/*! ./util/toString */
+
+/*! ./validate.js */
+
+/*! ./xregexp */
+
+/*! @babel/runtime-corejs3/core-js-stable/array/from */
+
+/*! @babel/runtime-corejs3/core-js-stable/array/is-array */
+
+/*! @babel/runtime-corejs3/core-js-stable/instance/concat */
+
+/*! @babel/runtime-corejs3/core-js-stable/instance/flags */
+
+/*! @babel/runtime-corejs3/core-js-stable/instance/for-each */
+
+/*! @babel/runtime-corejs3/core-js-stable/instance/index-of */
+
+/*! @babel/runtime-corejs3/core-js-stable/instance/map */
+
+/*! @babel/runtime-corejs3/core-js-stable/instance/reduce */
+
+/*! @babel/runtime-corejs3/core-js-stable/instance/slice */
+
+/*! @babel/runtime-corejs3/core-js-stable/instance/sort */
+
+/*! @babel/runtime-corejs3/core-js-stable/object/create */
+
+/*! @babel/runtime-corejs3/core-js-stable/object/define-property */
+
+/*! @babel/runtime-corejs3/core-js-stable/parse-int */
+
+/*! @babel/runtime-corejs3/core-js-stable/symbol */
+
+/*! @babel/runtime-corejs3/core-js/get-iterator-method */
+
+/*! @babel/runtime-corejs3/helpers/interopRequireDefault */
+
+/*! @babel/runtime-corejs3/helpers/slicedToArray */
+
+/*! @babel/runtime/helpers/esm/extends */
+
+/*! @babel/runtime/helpers/esm/inheritsLoose */
+
+/*! @babel/runtime/helpers/esm/objectWithoutPropertiesLoose */
+
+/*! core-js-pure/features/array/from.js */
+
+/*! core-js-pure/features/array/is-array.js */
+
+/*! core-js-pure/features/get-iterator-method */
+
+/*! core-js-pure/features/get-iterator-method.js */
+
+/*! core-js-pure/features/instance/push.js */
+
+/*! core-js-pure/features/instance/slice.js */
+
+/*! core-js-pure/features/symbol/index.js */
+
+/*! core-js-pure/stable/array/from */
+
+/*! core-js-pure/stable/array/is-array */
+
+/*! core-js-pure/stable/instance/concat */
+
+/*! core-js-pure/stable/instance/flags */
+
+/*! core-js-pure/stable/instance/for-each */
+
+/*! core-js-pure/stable/instance/index-of */
+
+/*! core-js-pure/stable/instance/map */
+
+/*! core-js-pure/stable/instance/reduce */
+
+/*! core-js-pure/stable/instance/slice */
+
+/*! core-js-pure/stable/instance/sort */
+
+/*! core-js-pure/stable/object/create */
+
+/*! core-js-pure/stable/object/define-property */
+
+/*! core-js-pure/stable/parse-int */
+
+/*! core-js-pure/stable/symbol */
+
+/*! cross-fetch */
+
+/*! history */
+
+/*! hoist-non-react-statics */
+
+/*! import() */
+
+/*! isarray */
+
+/*! path-to-regexp */
+
+/*! prop-types */
+
+/*! react */
+
+/*! react-dom */
+
+/*! react-is */
+
+/*! react-router */
+
+/*! resolve-pathname */
+
+/*! scheduler */
+
+/*! tiny-invariant */
+
+/*! tiny-warning */
+
+/*! value-equal */
+
+/**
+ * @license React
+ * react-dom.production.min.js
+ *
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+/**
+ * @license React
+ * react.production.min.js
+ *
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+/**
+ * @license React
+ * scheduler.production.min.js
+ *
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+/** @license React v16.13.1
+ * react-is.production.min.js
+ *
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */

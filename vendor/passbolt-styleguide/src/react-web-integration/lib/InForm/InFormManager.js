@@ -1,0 +1,616 @@
+/**
+ * Passbolt ~ Open source password manager for teams
+ * Copyright (c) 2021 Passbolt SA (https://www.passbolt.com)
+ *
+ * Licensed under GNU Affero General Public License version 3 of the or any later version.
+ * For full copyright and license information, please see the LICENSE.txt
+ * Redistributions of files must retain the above copyright notice.
+ *
+ * @copyright     Copyright (c) 2021 Passbolt SA (https://www.passbolt.com)
+ * @license       https://opensource.org/licenses/AGPL-3.0 AGPL License
+ * @link          https://www.passbolt.com Passbolt(tm)
+ * @since         3.3.0
+ */
+
+import InFormCallToActionField from "./InFormCallToActionField";
+import InFormFieldSelector from "./InFormFieldSelector";
+import InFormMenuField from "./InformMenuField";
+import InFormCredentialsFormField from "./InFormCredentialsFormField";
+import DomUtils from "../Dom/DomUtils";
+import debounce from "debounce-promise";
+import UserEventsService from "../User/UserEventsService";
+import ClipboardServiceWorkerService from "../../../shared/services/serviceWorker/clipboard/clipboardServiceWorkerService";
+import { TotpCodeGeneratorService } from "../../../shared/services/otp/TotpCodeGeneratorService";
+
+const Z_INDEX_MAX = 2147483647;
+
+/**
+ * Manages the in-form web integration including call-to-action and menu
+ */
+class InFormManager {
+  /**
+   * Default constructor
+   */
+  constructor() {
+    /** In-form username and password callToActionFields in the target page*/
+    this.callToActionFields = [];
+    /** In-form menu menuField in the target page*/
+    this.menuField = null;
+    /** In-form form fields in the target page*/
+    this.credentialsFormFields = [];
+    /** Mutation observers to detect any change on the DOM */
+    this.mutationObserver = null;
+
+    /** The shadow root with the host **/
+    this.host = null;
+    this.shadowRoot = null;
+
+    this.hostMutationObserver = null;
+    this.htmlMutationObserver = null;
+    this.bodyMutationObserver = null;
+
+    this.bindCallbacks();
+  }
+
+  /**
+   * Create the shadow host and shadow root and insert in the body
+   */
+  createAndInsertShadowRootWithHost() {
+    this.host = document.createElement("div");
+    /*
+     * Remove all style the component could have inherited from its environment.
+     * Enforce the following style:
+     * - position fixed to have the positioning relative to the viewport
+     * - display block to ensure the component is always displayed
+     * - z-index fixed to the maximum allowed value to ensure the component is always displayed above all the page's components.
+     */
+    this.host.setAttribute(
+      "style",
+      `all: initial; position: fixed !important; display: block !important; z-index: ${Z_INDEX_MAX} !important`,
+    );
+    // Block any setter and getter property style, however it can be bypassed with setAttribute.
+    Object.defineProperty(this.host, "style", {
+      set: () => {},
+      get: () => null,
+    });
+    // Attach shadow in closed mode to not have access except with the reference
+    this.shadowRoot = this.host.attachShadow({ mode: "closed" });
+    /*
+     * Block any click event that is not ins the shadow root
+     * This prevents an attacker to add element in the host and try to add event listener
+     */
+    this.host.addEventListener(
+      "click",
+      (event) => {
+        if (!this.shadowRoot.contains(event.target)) {
+          event.stopImmediatePropagation(); // Block any external event
+        }
+      },
+      true,
+    ); // Capture phase
+    // Insert the host in the body
+    document.body.appendChild(this.host);
+  }
+
+  /**
+   * Initializes the in-form manager
+   */
+  async initialize() {
+    /**
+     * Wait for all animations to finish before checking if the page is visible.
+     * Note: There is a risk that applications with continuous animations may prevent
+     * the Passbolt in-form application from initializing.
+     */
+    await this.waitingAnimations(document.documentElement);
+    await this.waitingAnimations(document.body);
+    // Do not initialize if the page is not visible enough before inserting elements
+    if (this.isPageNotVisible()) {
+      console.debug("Cannot insert the in-form menu manager into a page that is not visible.");
+      return;
+    }
+
+    this.clipboardServiceWorkerService = new ClipboardServiceWorkerService(port);
+    this.createAndInsertShadowRootWithHost();
+    this.findAndSetAuthenticationFields();
+    this.handleDomChange();
+    this.handleInformCallToActionRepositionEvent();
+    this.handlePortDestroyEvent();
+    this.handleInFormMenuInsertionEvent();
+    this.handleInFormMenuRemoveEvent();
+    this.handleInformCallToActionClickEvent();
+    this.handleGetLastCallToActionClickedInput();
+    this.handleGetCurrentCredentials();
+    this.handleFillCredentials();
+    this.handleFillPassword();
+    this.handleClipboardEvent();
+    this.handleApplicationOverlaidEvent();
+    this.handleDomStyleMutation();
+  }
+
+  /**
+   * Binds the callbacks
+   */
+  bindCallbacks() {
+    this.findAndSetAuthenticationFields = this.findAndSetAuthenticationFields.bind(this);
+    this.handleInformCallToActionClickEvent = this.handleInformCallToActionClickEvent.bind(this);
+    this.clean = this.clean.bind(this);
+    this.destroy = this.destroy.bind(this);
+    this.handleClipboardChange = this.handleClipboardChange.bind(this);
+  }
+
+  /**
+   * Monitor inline `style` attribute mutations on the host, <html>, and <body>.
+   * If a mutation makes any of these elements non-visible (e.g., display:none, opacity:0,
+   * visibility:hidden), the component is destroyed as a defensive measure.
+   */
+  handleDomStyleMutation() {
+    // Check any DOM style changes on the element
+    this.hostMutationObserver = new MutationObserver(() => this.destroyIfElementNotVisible(this.host));
+    this.htmlMutationObserver = new MutationObserver(() => this.destroyIfElementNotVisible(document.documentElement));
+    this.bodyMutationObserver = new MutationObserver(() => this.destroyIfElementNotVisible(document.body));
+
+    this.hostMutationObserver.observe(this.host, { attributes: true });
+    this.htmlMutationObserver.observe(document.documentElement, { attributes: true });
+    this.bodyMutationObserver.observe(document.body, { attributes: true });
+  }
+
+  /**
+   * Destroy all if element is not visible enough
+   * @param element
+   */
+  destroyIfElementNotVisible(element) {
+    if (this.isElementNotVisible(element)) {
+      this.destroy();
+    }
+  }
+
+  /**
+   * Is element not visible
+   * @param element
+   * @return {boolean}
+   */
+  isElementNotVisible(element) {
+    const visibilityOptions = {
+      visibilityProperty: true,
+    };
+    return getComputedStyle(element).opacity < 0.4 || !element.checkVisibility(visibilityOptions);
+  }
+
+  /**
+   * Waiting all animations on element
+   * @param element
+   * @return {Promise<void>}
+   */
+  async waitingAnimations(element) {
+    const animations = element.getAnimations();
+    await Promise.all(
+      animations.map(
+        (animation) =>
+          new Promise((resolve) => {
+            animation.addEventListener("finish", resolve, { once: true });
+          }),
+      ),
+    );
+  }
+
+  /**
+   * Is page not visible
+   * @return {boolean}
+   */
+  isPageNotVisible() {
+    return this.isElementNotVisible(document.documentElement) || this.isElementNotVisible(document.body);
+  }
+
+  /**
+   * Find authentication fields in the document and set them as object properties
+   */
+  findAndSetAuthenticationFields() {
+    this.findAndSetInputFields();
+    this.findAndSetCredentialsFormFields();
+  }
+
+  /**
+   * Find authentication callToActionFields in the document and set them as object properties
+   */
+  findAndSetInputFields() {
+    /*
+     * We find the username / passwords / OTP DOM callToActionFields.
+     * If it was previously found, we reuse the same InformUsernameField, otherwise we create one
+     * Else we clean and reset callToActionFields
+     */
+    const newUsernameFields = InFormCallToActionField.findAll(InFormFieldSelector.USERNAME_FIELD_SELECTOR);
+    const newPasswordFields = InFormCallToActionField.findAll(InFormFieldSelector.PASSWORD_FIELD_SELECTOR);
+    const newOTPFields = InFormCallToActionField.findAll(InFormFieldSelector.OTP_FIELD_SELECTOR);
+
+    /**
+     * A function factory to map a field to an existing field or create a new one
+     * @param {"username"|"password"|"otp"} fieldType The type of field to create
+     * @returns {function(HTMLElement): InFormCallToActionField} The function to map a field to an InFormCallToActionField
+     */
+    const mapField = (fieldType) => (field) => {
+      const existingField = this.callToActionFields.find(({ field: ctaField }) => ctaField === field);
+      return existingField ?? new InFormCallToActionField(field, fieldType, this.shadowRoot);
+    };
+
+    let newCTAFields = [
+      ...newUsernameFields.map(mapField("username")),
+      ...newPasswordFields.map(mapField("password")),
+      ...newOTPFields.map(mapField("otp")),
+    ];
+
+    if (newCTAFields.length > 0) {
+      this.removeCallToActionFieldsNotMatching(newCTAFields);
+    } else {
+      this.clean();
+    }
+
+    this.callToActionFields = newCTAFields;
+  }
+
+  /**
+   * Remove call to action fields that does not match new fields
+   * @param newFields The new fields
+   */
+  removeCallToActionFieldsNotMatching(newFields) {
+    const newFieldsSet = new Set(newFields.map(({ field }) => field));
+
+    this.callToActionFields.forEach((ctaField) => {
+      // Check if the ctaField is still in the document
+      if (!newFieldsSet.has(ctaField.field)) {
+        // If not, we remove its iframe
+        ctaField.removeIframe();
+      }
+    });
+  }
+
+  /**
+   * Find authentication formFields in the document and set them as object properties
+   */
+  findAndSetCredentialsFormFields() {
+    /**
+     * We find the form DOM formFields.
+     * If it was previously found, we reuse the same InformFormField, otherwise we create one
+     */
+    const newCredentialsFormFields = InFormCredentialsFormField.findAll();
+
+    if (newCredentialsFormFields.length > 0) {
+      // Get all fields filtered by their types
+      const { usernameCtaFields, passwordCtaFields } = this.callToActionFields.reduce(
+        (acc, ctaField) => {
+          if (ctaField.fieldType === "username") {
+            acc.usernameCtaFields.push(ctaField);
+          } else if (ctaField.fieldType === "password") {
+            acc.passwordCtaFields.push(ctaField);
+          }
+          return acc;
+        },
+        { usernameCtaFields: [], passwordCtaFields: [] },
+      );
+
+      this.credentialsFormFields = newCredentialsFormFields.map((newField) => {
+        const existingField = this.credentialsFormFields.find(({ field: formField }) => formField === newField);
+
+        if (!existingField) {
+          // We try to find username and password fields contained in the new form field
+          const usernameField = usernameCtaFields.find((ctaField) => newField.contains(ctaField.field));
+          const passwordField = passwordCtaFields.find((ctaField) => newField.contains(ctaField.field));
+
+          return new InFormCredentialsFormField(newField, usernameField?.field, passwordField?.field);
+        }
+
+        return existingField;
+      });
+    } else {
+      this.credentialsFormFields = [];
+    }
+  }
+
+  /**
+   * Clean the DOM of in-form entities
+   */
+  clean() {
+    this.callToActionFields.forEach((field) => field.removeIframe());
+    this.menuField?.removeIframe();
+  }
+
+  /**
+   * Whenever the DOM changes
+   */
+  handleDomChange() {
+    const updateAuthenticationFields = () => {
+      /*
+       * The only way to prevent an attacker trying to move the host into another parent element and add opacity
+       * If the host is not in the body anymore destroy
+       */
+      if (this.host.parentNode !== document.body) {
+        console.debug("Someone has moved the host of the shadow root");
+        this.destroy();
+        return;
+      }
+      this.findAndSetAuthenticationFields();
+      this.handleInformCallToActionClickEvent();
+    };
+
+    // Use requestIdleCallback when available to schedule work during browser idle periods,
+    // This enables us perform background and low priority work on the main thread, without
+    // impacting latency-critical events such as animation and input response.
+    // https://developer.mozilla.org/en-US/docs/Web/API/Window/requestIdleCallback
+    // If requestIdleCallback is not available as in the case of Safari, fall back to a
+    // simple debounce to avoid too many requests.
+    const updateAuthenticationFieldsDebounce = window.requestIdleCallback
+      ? debounce(
+          () => {
+            requestIdleCallback(
+              () => {
+                updateAuthenticationFields();
+              },
+              { timeout: 1000 },
+            );
+          },
+          300,
+          {
+            leading: false,
+            accumulate: false,
+          },
+        )
+      : debounce(updateAuthenticationFields, 1000, {
+          leading: true,
+          accumulate: false,
+        });
+
+    // Search again for authentication callToActionFields to attach when the DOM changes
+    // The mutation observer does not detect mutation in a closed shadow dom
+    this.mutationObserver = new MutationObserver(updateAuthenticationFieldsDebounce);
+    this.mutationObserver.observe(document.body, { subtree: true, childList: true });
+  }
+
+  /**
+   * Whenever the username / password callToActionFields change its position, reposition the call-to-action
+   */
+  handleInformCallToActionRepositionEvent() {
+    window.addEventListener("resize", this.clean);
+  }
+
+  /**
+   * Whenever the user clicks on the in-form call-to-action, it inserts the in-form menu iframe
+   */
+  handleInFormMenuInsertionEvent() {
+    port.on("passbolt.in-form-menu.open", () => {
+      this.menuField?.destroy();
+      this.menuField = new InFormMenuField(this.lastCallToActionFieldClicked.field, this.shadowRoot);
+    });
+  }
+
+  /**
+   * Whenever the user clicks on the in-form menu, it removes the in-form menu iframe
+   */
+  handleInFormMenuRemoveEvent() {
+    port.on("passbolt.in-form-menu.close", () => {
+      this.menuField.removeIframe();
+    });
+  }
+
+  /**
+   * Handle the click on the in-form call-to-action (iframe)
+   */
+  handleInformCallToActionClickEvent() {
+    const setLastCallToActionFieldClicked = (callToActionField) =>
+      callToActionField.onClick(() => {
+        this.lastCallToActionFieldClicked = callToActionField;
+      });
+    this.callToActionFields.forEach(setLastCallToActionFieldClicked);
+  }
+
+  /** Whenever one requires to get the type and value of the input attached to the last call-to-action performed */
+  handleGetLastCallToActionClickedInput() {
+    port.on("passbolt.web-integration.last-performed-call-to-action-input", (requestId) => {
+      port.emit(requestId, "SUCCESS", {
+        type: this.lastCallToActionFieldClicked.fieldType,
+        value: this.lastCallToActionFieldClicked.field.value,
+      });
+    });
+  }
+
+  /** Whenever one requires to get the current credentials */
+  handleGetCurrentCredentials() {
+    port.on("passbolt.web-integration.get-credentials", (requestId) => {
+      const currentFieldType = this.lastCallToActionFieldClicked?.fieldType;
+      const isUsernameType = currentFieldType === "username";
+      const isPasswordType = currentFieldType === "password";
+      let username = null;
+      let password = null;
+      if (!isUsernameType) {
+        username = this.callToActionFields.find((field) => field.fieldType === "username")?.field.value || "";
+        password = this.lastCallToActionFieldClicked?.field.value;
+      }
+      if (!isPasswordType) {
+        username = this.lastCallToActionFieldClicked?.field.value;
+        password = this.callToActionFields.find((field) => field.fieldType === "password")?.field.value || "";
+      }
+      port.emit(requestId, "SUCCESS", { username, password });
+    });
+  }
+
+  /**
+   * Whenever one requests to fill the current page form with given credentials
+   */
+  handleFillCredentials() {
+    port.on("passbolt.web-integration.fill-credentials", ({ username, password, totp }) => {
+      const currentFieldType = this.lastCallToActionFieldClicked?.fieldType;
+
+      const isUsernameType = currentFieldType === "username";
+      const isPasswordType = currentFieldType === "password";
+      const isOTPType = currentFieldType === "otp";
+
+      if (!isOTPType) {
+        if (!isUsernameType) {
+          // Simulate a user to autofill the password field
+          UserEventsService.autofill(this.lastCallToActionFieldClicked.field, password);
+          // Get username fields and find the one with the lowest common ancestor
+          const usernameFields = this.callToActionFields.filter(
+            (callToActionField) => callToActionField.fieldType === "username",
+          );
+          const usernameField = DomUtils.getFieldWithLowestCommonAncestor(
+            this.lastCallToActionFieldClicked.field,
+            usernameFields,
+          );
+          if (usernameField) {
+            // Simulate a user to autofill the username field
+            UserEventsService.autofill(usernameField.field, username);
+          }
+        } else if (!isPasswordType) {
+          // Simulate a user to autofill the username field
+          UserEventsService.autofill(this.lastCallToActionFieldClicked.field, username);
+          // Get password fields and find the one with the lowest common ancestor
+          const passwordFields = this.callToActionFields.filter(
+            (callToActionField) => callToActionField.fieldType === "password",
+          );
+          const passwordField = DomUtils.getFieldWithLowestCommonAncestor(
+            this.lastCallToActionFieldClicked.field,
+            passwordFields,
+          );
+          if (passwordField) {
+            // Simulate a user to autofill the password field
+            UserEventsService.autofill(passwordField.field, password);
+          }
+        }
+      } else if (totp) {
+        // If an OTP value is provided, fill the OTP field
+        const totpValue = TotpCodeGeneratorService.generate(totp);
+        if (!totpValue) {
+          throw new TypeError("Error while generating the TOTP.");
+        }
+
+        UserEventsService.autofill(this.lastCallToActionFieldClicked.field, totpValue);
+      }
+    });
+  }
+
+  /**
+   * Whenever one requests to fill the current page form with a password
+   */
+  handleFillPassword() {
+    port.on("passbolt.web-integration.fill-password", (password) => {
+      const passwordFields = this.callToActionFields.filter(
+        (callToActionField) => callToActionField.fieldType === "password",
+      );
+      // Autofill only empty passwords field
+      passwordFields.forEach(
+        (callToActionField) =>
+          !callToActionField.field.value && UserEventsService.autofill(callToActionField.field, password),
+      );
+      this.menuField.removeIframe();
+      // Listen the auto-save on the appropriate form field
+      const formField = this.credentialsFormFields.find((formField) =>
+        formField.field.contains(this.lastCallToActionFieldClicked.field),
+      );
+      formField?.handleAutoSaveEvent();
+    });
+  }
+
+  /**
+   * Starts listening to "cut" and "copy" events
+   */
+  handleClipboardEvent() {
+    document.addEventListener("cut", this.handleClipboardChange);
+    document.addEventListener("copy", this.handleClipboardChange);
+  }
+
+  /**
+   * Handler of the "cut" and "copy" event.
+   */
+  handleClipboardChange() {
+    this.clipboardServiceWorkerService.cancelClipboardFlush();
+  }
+
+  /**
+   * Whenever one requested to check if the application is overlaid
+   */
+  handleApplicationOverlaidEvent() {
+    port.on("passbolt.web-integration.is-application-overlaid", async (requestId, applicationId) => {
+      const application =
+        this.menuField?.id === applicationId
+          ? this.menuField
+          : this.callToActionFields.find((field) => field.id === applicationId);
+      const isOverlay = this.isApplicationOverlaid(application);
+      await port.emit(requestId, "SUCCESS", isOverlay);
+      if (isOverlay) {
+        application.removeIframe();
+      }
+    });
+  }
+
+  /**
+   * Is application overlaid
+   * @param application
+   * @return {boolean}
+   */
+  isApplicationOverlaid(application) {
+    const iframe = this.shadowRoot.getElementById(application.iframeId);
+    // Get all elements having pointer-event none
+    const pointerEventNoneElements = this.elementsWithPointerEventNone;
+    // Set pointer-event to auto to enable the detection of an overlay on application
+    pointerEventNoneElements.forEach((pointerEl) => pointerEl.style.setProperty("pointer-events", "auto", "important"));
+    const points = DomUtils.generateUniquePointsInElement(iframe);
+    // Elements with pointer-events set to none will be ignored, and the element below it will be returned.
+    const elements = points.map((point) => document.elementFromPoint(point.x, point.y));
+    // Set back pointer-event to none
+    pointerEventNoneElements.forEach((pointerEl) => (pointerEl.style.pointerEvents = "none"));
+    return elements.some((element) => element !== this.host);
+  }
+
+  /**
+   * Get elements with pointer event none
+   * @return {[]}
+   */
+  get elementsWithPointerEventNone() {
+    const treeWalker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT, {
+      acceptNode: function (node) {
+        const style = window.getComputedStyle(node);
+        return style.pointerEvents === "none" ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      },
+    });
+    const elements = [];
+    let currentNode;
+    while ((currentNode = treeWalker.nextNode())) {
+      elements.push(currentNode);
+    }
+    return elements;
+  }
+
+  /**
+   * Remove all event, observer and iframe
+   */
+  destroy() {
+    this.mutationObserver.disconnect();
+    this.hostMutationObserver.disconnect();
+    this.htmlMutationObserver.disconnect();
+    this.bodyMutationObserver.disconnect();
+    this.callToActionFields.forEach((field) => field.destroy());
+    this.menuField?.destroy();
+    this.credentialsFormFields.forEach((field) => field.destroy());
+    window.removeEventListener("resize", this.clean);
+    document.removeEventListener("cut", this.handleClipboardChange);
+    document.removeEventListener("copy", this.handleClipboardChange);
+    this.host.remove();
+  }
+
+  /**
+   * Whenever the port should be destroyed due to an update of the extension
+   */
+  handlePortDestroyEvent() {
+    /*
+     * This is extremely important, when an extension is available
+     * so the port receive the message 'passbolt.port.destroy' to clean all data and listeners
+     */
+    port.on("passbolt.content-script.destroy", this.destroy);
+    /*
+     * If the port has not been destroyed correctly,
+     * The port cannot reconnect due to an invalid context in case of a manual update of the extension,
+     * So to prevent error, a callback destroy listeners is assigned
+     */
+    port.onConnectError(this.destroy);
+  }
+}
+
+export default new InFormManager();
