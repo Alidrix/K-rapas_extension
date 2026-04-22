@@ -16,29 +16,52 @@ const FETCH_OFFSCREEN_DOCUMENT_REASON = "WORKERS";
 const OFFSCREEN_URL = "offscreens/offscreen.html";
 const LOCK_CREATE_OFFSCREEN_DOCUMENT = "LOCK_CREATE_OFFSCREEN_DOCUMENT";
 
+const IS_FIREFOX =
+  typeof browser !== "undefined" &&
+  browser.runtime &&
+  typeof browser.runtime.getBrowserInfo === "function";
+
 export default class CreateOffscreenDocumentService {
   /**
    * Create clipboard offscreen document if it does not exist yet.
    * @returns {Promise<void>}
    */
   static async createIfNotExistOffscreenDocument() {
-    // Create offscreen document if it does not already exist.
     await navigator.locks.request(LOCK_CREATE_OFFSCREEN_DOCUMENT, async () => {
+      if (IS_FIREFOX) {
+        return false;
+      }
+
+      if (
+        typeof chrome === "undefined" ||
+        !chrome.runtime ||
+        typeof chrome.runtime.getContexts !== "function" ||
+        !chrome.offscreen ||
+        typeof chrome.offscreen.createDocument !== "function"
+      ) {
+        return false;
+      }
+
       const existingContexts = await chrome.runtime.getContexts({
         contextTypes: ["OFFSCREEN_DOCUMENT"],
         documentUrls: [chrome.runtime.getURL(OFFSCREEN_URL)],
       });
 
-      if (existingContexts.length > 0) {
-        return;
+      if (existingContexts && existingContexts.length > 0) {
+        return true;
       }
 
       await chrome.offscreen.createDocument({
         url: OFFSCREEN_URL,
-        reasons: [FETCH_OFFSCREEN_DOCUMENT_REASON, CLIPBOARD_OFFSCREEN_DOCUMENT_REASON],
+        reasons: [
+          FETCH_OFFSCREEN_DOCUMENT_REASON,
+          CLIPBOARD_OFFSCREEN_DOCUMENT_REASON,
+        ],
         justification:
-          "1. Read/write clipboard as clipboard API is unavailable in MV3 service workers 2. Perform requests to self hosted Passbolt API serving invalid certificate.",
+          "Read/write clipboard as clipboard API is unavailable in MV3 service workers. Perform requests to self hosted Passbolt instance.",
       });
+
+      return true;
     });
   }
 }
