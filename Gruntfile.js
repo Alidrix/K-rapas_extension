@@ -31,14 +31,14 @@ module.exports = function (grunt) {
     src_firefox: 'src/firefox/',
     src_content_scripts: 'src/all/contentScripts/',
     src_web_accessible_resources: 'src/all/webAccessibleResources/',
+
+    branding_extension_icons: 'branding/extension/icons/'
   };
-  const firefoxWebExtBuildName = 'k_rapas_-_gestionnaire_souverain_de_mots_de_passe';
 
   /**
    * Import package.json file content
    */
   var pkg = grunt.file.readJSON('package.json');
-  var manifestVersion =  pkg.version.replace(/-.*(\.\d*)$/, '$1');
 
   /**
    * Load and enable Tasks
@@ -48,7 +48,7 @@ module.exports = function (grunt) {
   grunt.loadNpmTasks('grunt-contrib-copy');
 
   grunt.registerTask('default', ['bundle']);
-  grunt.registerTask('pre-dist', ['copy:styleguide']);
+  grunt.registerTask('pre-dist', ['copy:styleguide', 'copy:krapas_icons']);
 
   grunt.registerTask('bundle', ['externalize-locale-strings', 'copy:background_page', 'copy:web_accessible_resources', 'copy:locales']);
   grunt.registerTask('bundle-mv3', ['externalize-locale-strings', 'copy:service_worker', 'copy:web_accessible_resources', 'copy:locales']);
@@ -99,13 +99,17 @@ module.exports = function (grunt) {
       // switch config files to debug or production
       config_debug: {
         files: [{
-          expand: true, cwd: path.src_background_page + 'config', src: 'config.json.debug', dest: path.src_background_page + 'config',
+          expand: true,
+          cwd: path.src_background_page + 'config',
+          src: 'config.json.debug',
+          dest: path.src_background_page + 'config',
           rename: function (dest, src) { return dest + '/config.json'; }
         }]
       },
       config_default: {
         files: [{
-          expand: true, cwd: path.src_background_page + 'config',
+          expand: true,
+          cwd: path.src_background_page + 'config',
           src: 'config.json.default',
           dest: path.src_background_page + 'config',
           rename: function (dest, src) { console.log(dest + '/config.json'); return dest + '/config.json'; }
@@ -133,6 +137,7 @@ module.exports = function (grunt) {
           { expand: true, cwd: path.src + '_locales', src: ['**', "!**/*.test.js"], dest: path.build + '_locales' }
         ]
       },
+
       // switch manifest file to firefox or chrome
       manifest_firefox: {
         files: [{
@@ -154,6 +159,7 @@ module.exports = function (grunt) {
           expand: true, cwd: path.src_safari, src: 'manifest.json', dest: path.build
         }]
       },
+
       // Copy styleguide elements
       styleguide: {
         files: [{
@@ -170,8 +176,7 @@ module.exports = function (grunt) {
           src: ['check_tick.svg'],
           dest: path.build_web_accessible_resources + 'img/controls',
           expand: true
-        },
-        {
+        }, {
           // Icons / logo
           nonull: true,
           cwd: path.node_modules + 'passbolt-styleguide/src/img/logo',
@@ -204,7 +209,8 @@ module.exports = function (grunt) {
             'icon-32-badge-5.png',
             'icon-32-badge-5+.png',
             'icon-48.png',
-            'icon-128.png'],
+            'icon-128.png'
+          ],
           dest: path.build_web_accessible_resources + 'img/icons',
           expand: true
         }, {
@@ -271,6 +277,29 @@ module.exports = function (grunt) {
           dest: path.build_web_accessible_resources + 'locales',
           expand: true
         }]
+      },
+
+      // Overlay K'rapas icons after styleguide copy
+      krapas_icons: {
+        files: [{
+          nonull: true,
+          cwd: path.branding_extension_icons,
+          src: [
+            'icon-16.png',
+            'icon-32.png',
+            'icon-32-signout.png',
+            'icon-32-badge-1.png',
+            'icon-32-badge-2.png',
+            'icon-32-badge-3.png',
+            'icon-32-badge-4.png',
+            'icon-32-badge-5.png',
+            'icon-32-badge-5+.png',
+            'icon-48.png',
+            'icon-128.png'
+          ],
+          dest: path.build_web_accessible_resources + 'img/icons',
+          expand: true
+        }]
       }
     },
 
@@ -279,6 +308,7 @@ module.exports = function (grunt) {
      */
     shell: {
       options: { stderr: false },
+
       /**
        * Build background page.
        */
@@ -302,6 +332,7 @@ module.exports = function (grunt) {
           'npm run dev:build:safari:background-page'
         ].join(' && ')
       },
+
       /**
        * Build service worker.
        */
@@ -344,6 +375,7 @@ module.exports = function (grunt) {
           'npm run dev:build:content-scripts:public-website'
         ].join(' && ')
       },
+
       /**
        * Build web accessible resources
        */
@@ -367,12 +399,14 @@ module.exports = function (grunt) {
           'npm run dev:build:web-accessible-resources:browser-integration'
         ].join(' && ')
       },
+
       // Execute the externalization command
       externalize: {
         command: [
           'npm run i18n:externalize'
         ].join(' && ')
       },
+
       // Execute the eslint command
       eslint: {
         command: [
@@ -397,11 +431,8 @@ module.exports = function (grunt) {
         },
         command: [
           'mkdir -p ' + path.dist_firefox,
-          './node_modules/.bin/web-ext build -s=' + path.build + ' -a=' + path.dist_firefox + '  -o=true',
-          'mv ' + path.dist_firefox + firefoxWebExtBuildName + '-' + manifestVersion + '.zip ' + path.dist_firefox + 'passbolt-' + pkg.version + '-debug.zip',
-          'rm -f ' + path.dist_firefox + 'passbolt-latest@passbolt.com.zip',
-          'ln -fs passbolt-' + pkg.version + '-debug.zip ' + path.dist_firefox + 'passbolt-latest@passbolt.com.zip',
-          "echo '\nMoved to " + path.dist_firefox + "passbolt-" + pkg.version + "-debug.zip'"
+          './node_modules/.bin/web-ext build -s=' + path.build + ' -a=' + path.dist_firefox + ' -o=true --filename=passbolt-{version}-debug.zip',
+          "echo '\\nMoved to " + path.dist_firefox + "passbolt-{version}-debug.zip'"
         ].join(' && ')
       },
       build_firefox_prod: {
@@ -410,9 +441,8 @@ module.exports = function (grunt) {
         },
         command: [
           'mkdir -p ' + path.dist_firefox,
-          './node_modules/.bin/web-ext build -s=' + path.build + ' -a=' + path.dist_firefox + '  -o=true',
-          'mv ' + path.dist_firefox + firefoxWebExtBuildName + '-' + manifestVersion + '.zip ' + path.dist_firefox + '/passbolt-' + pkg.version + '.zip',
-          "echo '\nMoved to " + path.dist_firefox + "passbolt-" + pkg.version + ".zip'"
+          './node_modules/.bin/web-ext build -s=' + path.build + ' -a=' + path.dist_firefox + ' -o=true --filename=passbolt-{version}.zip',
+          "echo '\\nMoved to " + path.dist_firefox + "passbolt-{version}.zip'"
         ].join(' && ')
       },
 
@@ -438,9 +468,10 @@ module.exports = function (grunt) {
           'mkdir -p ' + path.dist_chromium_mv2,
           'zip -q -1 -r ' + path.dist_chromium_mv2 + 'passbolt-' + pkg.version + '.zip ' + path.build,
           './node_modules/.bin/crx pack ' + path.build + ' -p key.pem -o ' + path.dist_chromium_mv2 + 'passbolt-' + pkg.version + '.crx ',
-          "echo '\nZip and Crx files generated in " + path.dist_chromium_mv2 + "'"
+          "echo '\\nZip and Crx files generated in " + path.dist_chromium_mv2 + "'"
         ].join(' && ')
       },
+
       /**
        * Chrome MV3
        */
@@ -463,7 +494,7 @@ module.exports = function (grunt) {
           'mkdir -p ' + path.dist_chromium_mv3,
           'zip -q -1 -r ' + path.dist_chromium_mv3 + 'passbolt-' + pkg.version + '.zip ' + path.build,
           './node_modules/.bin/crx pack ' + path.build + ' -p key.pem -o ' + path.dist_chromium_mv3 + 'passbolt-' + pkg.version + '.crx ',
-          "echo '\nZip and Crx files generated in " + path.dist_chromium_mv3 + "'"
+          "echo '\\nZip and Crx files generated in " + path.dist_chromium_mv3 + "'"
         ].join(' && ')
       }
     }

@@ -1,0 +1,6 @@
+{
+  "version": {
+    "license": "MPL-2.0",
+    "approval_notes": "Firefox-only update of the existing K'rapas extension listing. Changes are limited to branding updates: logos and visible name replacement from Passbolt to K'rapas."
+  }
+}

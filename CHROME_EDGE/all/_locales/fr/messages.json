@@ -1,0 +1,10 @@
+{
+  "appName": {
+    "message": "K'rapas - Gestionnaire souverain de mots de passe",
+    "description": "Nom de l’application de l’extension, affiché dans le navigateur."
+  },
+  "appDescription": {
+    "message": "Extension K'rapas pour le gestionnaire souverain de mots de passe conçu pour les équipes.",
+    "description": "Description de l’extension affichée dans le navigateur."
+  }
+}
